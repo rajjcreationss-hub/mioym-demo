@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sophie — MIOYM Affordable Homes AI Leasing Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #0f1e35; --navy-light: #1a3356; --gold: #c9a84c; --gold-light: #f5e9c8;
+  --gold-dim: #8a6f2e; --white: #ffffff; --off-white: #f7f6f2; --gray: #6b7280;
+  --light-gray: #e5e7eb; --success: #16a34a; --danger: #dc2626;
+  --crm-bg: #0a1628; --sheets-green: #0f9d58;
+}
+body { font-family:'Inter',sans-serif; background:var(--off-white); display:flex; flex-direction:column; overflow:hidden; height:100vh; }
+
+/* HEADER */
+header { background:var(--navy); padding:9px 18px; display:flex; align-items:center; gap:12px; box-shadow:0 2px 12px rgba(0,0,0,0.3); flex-shrink:0; }
+.logo-mark { width:34px; height:34px; background:var(--gold); border-radius:7px; display:flex; align-items:center; justify-content:center; font-family:'DM Serif Display',serif; font-size:14px; color:var(--navy); font-weight:bold; flex-shrink:0; }
+.header-text h1 { font-family:'DM Serif Display',serif; font-size:15px; color:var(--white); }
+.header-text p { font-size:10px; color:var(--gold); letter-spacing:.05em; text-transform:uppercase; margin-top:1px; }
+.header-right { margin-left:auto; display:flex; align-items:center; gap:14px; }
+.status-dot { display:flex; align-items:center; gap:5px; font-size:11px; color:#86efac; }
+.dot { width:6px; height:6px; background:#22c55e; border-radius:50%; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.demo-badge { background:rgba(201,168,76,.2); border:1px solid var(--gold-dim); color:var(--gold); font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; }
+
+/* MAIN */
+.main { display:grid; grid-template-columns:1fr 1fr; flex:1; overflow:hidden; }
+@media (max-width: 768px) {
+  .main { grid-template-columns:1fr; grid-template-rows:auto auto; overflow-y:auto; height:auto; }
+  body { overflow-y:auto; height:auto; }
+  .chat-panel { min-height:60vh; border-right:none; border-bottom:1px solid var(--light-gray); }
+  .right-panel { min-height:55vh; }
+  .chat-messages { max-height:40vh; }
+  .spreadsheet-wrapper { max-height:160px; }
+  .activity-feed { max-height:100px; }
+  .email-viewer { max-height:160px; }
+  .platform-selector { flex-wrap:wrap; gap:4px; }
+  .platform-btn { font-size:9px; padding:2px 7px; }
+  .simulate-btn { font-size:9px; padding:3px 8px; width:100%; margin-top:4px; }
+  header { padding:7px 12px; }
+  .header-text h1 { font-size:13px; }
+  .header-text p { font-size:9px; }
+  .tab { font-size:9px; padding:6px 3px; }
+  .demo-badge { display:none; }
+  .bubble { max-width:88%; font-size:12px; }
+  .chip { font-size:10px; padding:4px 9px; }
+}
+
+/* CHAT PANEL */
+.chat-panel { display:flex; flex-direction:column; border-right:1px solid var(--light-gray); background:var(--off-white); overflow:hidden; }
+.chat-header { padding:9px 14px; background:var(--white); border-bottom:1px solid var(--light-gray); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.sophie-av { width:30px; height:30px; background:var(--navy); border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'DM Serif Display',serif; font-size:12px; color:var(--gold); border:1.5px solid var(--gold); flex-shrink:0; }
+.chat-header-info h3 { font-size:13px; font-weight:600; color:var(--navy); }
+.chat-header-info p { font-size:10px; color:var(--gray); }
+
+/* PROGRESS */
+.progress-bar { padding:7px 14px; background:var(--white); border-bottom:1px solid var(--light-gray); flex-shrink:0; }
+.progress-steps { display:flex; align-items:center; }
+.step { display:flex; flex-direction:column; align-items:center; gap:2px; flex:1; position:relative; }
+.step:not(:last-child)::after { content:''; position:absolute; top:8px; left:50%; width:100%; height:2px; background:var(--light-gray); z-index:0; }
+.step.done:not(:last-child)::after { background:var(--gold); }
+.step-dot { width:17px; height:17px; border-radius:50%; background:var(--light-gray); display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; color:var(--gray); z-index:1; transition:all .3s; }
+.step.done .step-dot { background:var(--gold); color:var(--navy); }
+.step.active .step-dot { background:var(--navy); color:var(--gold); box-shadow:0 0 0 3px var(--gold-light); }
+.step-label { font-size:7.5px; color:var(--gray); font-weight:500; text-align:center; white-space:nowrap; }
+.step.done .step-label, .step.active .step-label { color:var(--navy); font-weight:600; }
+
+/* MESSAGES */
+.chat-messages { flex:1; padding:12px 14px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
+.message { display:flex; gap:6px; align-items:flex-end; animation:fadeUp .3s ease; }
+.message.user { flex-direction:row-reverse; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+.av { width:24px; height:24px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; }
+.av.s { background:var(--navy); color:var(--gold); border:1.5px solid var(--gold); font-family:'DM Serif Display',serif; }
+.av.u { background:var(--gold); color:var(--navy); }
+.bubble { max-width:76%; padding:8px 12px; border-radius:14px; font-size:12.5px; line-height:1.55; }
+.message.sophie .bubble { background:var(--white); color:var(--navy); border-bottom-left-radius:3px; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+.message.user .bubble { background:var(--navy); color:var(--white); border-bottom-right-radius:3px; }
+.bubble a { color:var(--gold); font-weight:600; }
+.typing { display:flex; gap:3px; padding:10px 14px; background:var(--white); border-radius:14px; border-bottom-left-radius:3px; width:fit-content; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+.typing span { width:5px; height:5px; background:var(--gold); border-radius:50%; animation:bounce 1.2s infinite; }
+.typing span:nth-child(2){animation-delay:.2s} .typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+.chips { display:flex; flex-wrap:wrap; gap:5px; padding:2px 12px 7px 30px; }
+.chip { padding:4px 10px; border:1.5px solid var(--gold); border-radius:13px; font-size:11px; color:var(--navy); cursor:pointer; background:var(--white); transition:all .15s; font-family:'Inter',sans-serif; }
+.chip:hover { background:var(--gold); color:var(--navy); font-weight:600; }
+.input-area { padding:9px 12px; border-top:1px solid var(--light-gray); background:var(--white); display:flex; gap:7px; align-items:center; flex-shrink:0; }
+#userInput { flex:1; padding:8px 12px; border:1.5px solid var(--light-gray); border-radius:17px; font-size:12.5px; font-family:'Inter',sans-serif; outline:none; background:var(--off-white); color:var(--navy); transition:border-color .2s; }
+#userInput:focus { border-color:var(--gold); background:var(--white); }
+#sendBtn { width:34px; height:34px; border-radius:50%; background:var(--navy); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+#sendBtn:hover { background:var(--navy-light); }
+#sendBtn svg { stroke:var(--gold); }
+
+/* RIGHT PANEL */
+.right-panel { display:flex; flex-direction:column; overflow:hidden; background:var(--crm-bg); }
+.tabs { display:flex; flex-shrink:0; border-bottom:1px solid rgba(255,255,255,.08); }
+.tab { flex:1; padding:8px 4px; text-align:center; font-size:10px; font-weight:600; cursor:pointer; color:rgba(255,255,255,.35); border-bottom:2px solid transparent; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:4px; letter-spacing:.02em; }
+.tab.active { color:var(--white); border-bottom-color:var(--gold); }
+.tab:hover:not(.active) { color:rgba(255,255,255,.6); }
+.tab-icon { width:13px; height:13px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:800; flex-shrink:0; }
+.tab-icon.inbox { background:#ea4335; color:white; }
+.tab-icon.sheets { background:var(--sheets-green); color:white; }
+.tab-icon.fw { background:#0066cc; color:white; }
+.tab-content { display:none; flex:1; overflow:hidden; flex-direction:column; }
+.tab-content.active { display:flex; }
+
+/* ── INBOX TAB ── */
+.inbox-panel { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+.inbox-header { padding:9px 12px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; gap:8px; flex-shrink:0; background:rgba(234,67,53,.06); }
+.inbox-logo { width:22px; height:22px; background:#ea4335; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; flex-shrink:0; }
+.inbox-header-info h3 { font-size:11px; font-weight:600; color:var(--white); }
+.inbox-header-info p { font-size:9px; color:rgba(255,255,255,.35); }
+
+/* PLATFORM SELECTOR */
+.platform-selector { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; gap:6px; align-items:center; flex-shrink:0; flex-wrap:wrap; }
+.platform-label { font-size:9px; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:.05em; font-weight:600; margin-right:2px; }
+.platform-btn { padding:3px 9px; border-radius:12px; font-size:10px; font-weight:600; cursor:pointer; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.05); color:rgba(255,255,255,.5); transition:all .2s; font-family:'Inter',sans-serif; }
+.platform-btn:hover { border-color:var(--gold); color:var(--gold); }
+.platform-btn.active { background:rgba(201,168,76,.2); border-color:var(--gold); color:var(--gold); font-weight:700; }
+.simulate-btn { margin-left:auto; padding:4px 10px; background:rgba(234,67,53,.2); border:1px solid rgba(234,67,53,.4); color:#fca5a5; border-radius:10px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; transition:all .2s; white-space:nowrap; }
+.simulate-btn:hover { background:rgba(234,67,53,.35); }
+
+/* EMAIL VIEWER */
+.email-viewer { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; }
+.email-placeholder { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:rgba(255,255,255,.15); font-size:11px; text-align:center; padding:20px; }
+.email-card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px; overflow:hidden; animation:slideIn .4s ease; }
+@keyframes slideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.email-meta { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.06); }
+.email-meta-row { display:flex; gap:6px; align-items:baseline; margin-bottom:3px; }
+.email-meta-row:last-child { margin-bottom:0; }
+.email-meta-label { font-size:9px; color:rgba(255,255,255,.3); font-weight:600; min-width:42px; text-transform:uppercase; }
+.email-meta-value { font-size:10.5px; color:rgba(255,255,255,.75); font-family:'JetBrains Mono',monospace; }
+.email-subject { font-size:11px; font-weight:700; color:var(--white); }
+.email-body { padding:10px; font-size:10.5px; color:rgba(255,255,255,.6); line-height:1.6; font-family:'JetBrains Mono',monospace; white-space:pre-wrap; }
+
+/* PARSING ANIMATION */
+.parsing-section { flex-shrink:0; }
+.parsing-header { padding:6px 10px; font-size:9px; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:.06em; font-weight:600; display:flex; align-items:center; gap:6px; border-top:1px solid rgba(255,255,255,.06); }
+.parsing-spinner { width:8px; height:8px; border:1.5px solid rgba(255,255,255,.2); border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite; display:none; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.parsing-spinner.active { display:block; }
+.parsed-fields { padding:0 10px 8px; display:flex; flex-direction:column; gap:3px; }
+.parsed-field { display:flex; gap:6px; align-items:center; padding:4px 6px; border-radius:5px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.04); opacity:0; transform:translateX(6px); transition:all .3s; }
+.parsed-field.visible { opacity:1; transform:translateX(0); }
+.pf-label { font-size:9px; color:rgba(255,255,255,.35); font-weight:600; min-width:56px; text-transform:uppercase; letter-spacing:.03em; }
+.pf-value { font-size:10.5px; color:#4ade80; font-weight:600; font-family:'JetBrains Mono',monospace; }
+.pf-highlight { background:rgba(74,222,128,.08); border-color:rgba(74,222,128,.15); }
+
+/* PUSH TO SHEETS BTN */
+.push-to-sheets { margin:0 10px 10px; padding:7px; background:rgba(15,157,88,.2); border:1px solid rgba(15,157,88,.35); border-radius:7px; font-size:11px; font-weight:600; color:#4ade80; cursor:pointer; text-align:center; font-family:'Inter',sans-serif; transition:all .2s; display:none; }
+.push-to-sheets:hover { background:rgba(15,157,88,.35); }
+.push-to-sheets.visible { display:block; }
+
+/* SHEETS TAB */
+.sheets-panel { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+.sheets-header { padding:9px 12px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; gap:8px; flex-shrink:0; background:rgba(15,157,88,.06); }
+.sheets-logo { width:22px; height:22px; background:var(--sheets-green); border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; flex-shrink:0; }
+.sheets-header-info h3 { font-size:11px; font-weight:600; color:var(--white); }
+.sheets-header-info p { font-size:9px; color:rgba(255,255,255,.35); }
+.sheets-live { margin-left:auto; display:flex; align-items:center; gap:4px; font-size:9px; color:#86efac; font-weight:600; }
+.sheets-live-dot { width:5px; height:5px; background:#22c55e; border-radius:50%; animation:pulse 1.5s infinite; }
+.formula-bar { padding:4px 8px; background:rgba(255,255,255,.03); border-bottom:1px solid rgba(255,255,255,.05); display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.formula-cell { font-size:9px; color:var(--sheets-green); font-weight:700; min-width:24px; }
+.formula-sep { color:rgba(255,255,255,.15); font-size:10px; }
+.formula-content { font-size:9px; color:rgba(255,255,255,.4); font-family:'JetBrains Mono',monospace; }
+.spreadsheet-wrapper { flex:1; overflow:auto; }
+.spreadsheet { width:100%; border-collapse:collapse; font-size:10px; }
+.spreadsheet th { background:rgba(15,157,88,.12); color:var(--sheets-green); font-weight:700; padding:5px 7px; text-align:left; border:1px solid rgba(255,255,255,.05); white-space:nowrap; font-size:9px; letter-spacing:.03em; position:sticky; top:0; z-index:2; }
+.spreadsheet .row-num { background:rgba(255,255,255,.04); color:rgba(255,255,255,.25); font-size:8px; text-align:center; width:20px; border:1px solid rgba(255,255,255,.05); padding:3px; }
+.spreadsheet td { padding:4px 7px; border:1px solid rgba(255,255,255,.04); color:rgba(255,255,255,.75); white-space:nowrap; vertical-align:middle; font-size:10px; }
+.spreadsheet tr:hover td { background:rgba(255,255,255,.03); }
+.cell-empty { color:rgba(255,255,255,.15) !important; font-style:italic; }
+.cell-qualified { color:#4ade80 !important; font-weight:700; }
+.cell-disqualified { color:#f87171 !important; font-weight:700; }
+.cell-pending { color:#fbbf24 !important; }
+.cell-source { color:#93c5fd !important; font-weight:600; }
+.cell-new { animation:cellFlash .7s ease; }
+@keyframes cellFlash { 0%{background:rgba(201,168,76,.25)} 100%{background:transparent} }
+.sheets-activity { flex-shrink:0; border-top:1px solid rgba(255,255,255,.06); max-height:100px; overflow-y:auto; }
+.sheets-activity-title { padding:5px 8px 3px; font-size:8px; color:rgba(255,255,255,.25); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+.sheets-log { font-size:9.5px; padding:0 8px 6px; display:flex; flex-direction:column; gap:2px; }
+.sheets-log-item { color:rgba(255,255,255,.45); display:flex; gap:6px; }
+.sheets-log-item .log-time { color:var(--sheets-green); font-weight:600; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:9px; }
+
+/* CRM TAB */
+.crm-inner { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+.crm-header { padding:9px 12px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; gap:8px; flex-shrink:0; background:rgba(0,102,204,.05); }
+.crm-logo { width:22px; height:22px; background:#0066cc; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; flex-shrink:0; }
+.crm-header-info h3 { font-size:11px; font-weight:600; color:var(--white); }
+.crm-header-info p { font-size:9px; color:rgba(255,255,255,.35); }
+.crm-live { margin-left:auto; display:flex; align-items:center; gap:4px; font-size:9px; color:#86efac; font-weight:600; }
+.crm-live-dot { width:5px; height:5px; background:#22c55e; border-radius:50%; animation:pulse 1.5s infinite; }
+.pipeline-flow { padding:8px 12px; border-bottom:1px solid rgba(255,255,255,.06); flex-shrink:0; }
+.pipeline-title { font-size:8px; color:rgba(255,255,255,.25); text-transform:uppercase; letter-spacing:.06em; font-weight:600; margin-bottom:6px; }
+.pipeline-steps { display:flex; align-items:center; gap:0; }
+.pipe-step { flex:1; text-align:center; position:relative; }
+.pipe-step:not(:last-child)::after { content:'→'; position:absolute; right:-5px; top:50%; transform:translateY(-50%); font-size:9px; color:rgba(255,255,255,.15); z-index:1; }
+.pipe-badge { font-size:8.5px; padding:3px 4px; border-radius:4px; font-weight:600; background:rgba(255,255,255,.05); color:rgba(255,255,255,.25); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:all .3s; }
+.pipe-badge.active { background:rgba(201,168,76,.2); color:var(--gold); }
+.pipe-badge.done { background:rgba(22,163,74,.12); color:#4ade80; }
+.lead-card { margin:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:7px; padding:9px; flex-shrink:0; }
+.lead-card-title { font-size:8px; color:rgba(255,255,255,.25); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; font-weight:600; display:flex; align-items:center; justify-content:space-between; }
+.push-badge { background:rgba(0,102,204,.3); color:#93c5fd; font-size:8px; padding:1px 5px; border-radius:8px; border:1px solid rgba(0,102,204,.4); display:none; }
+.push-badge.visible { display:inline-flex; }
+.lead-field { display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+.lead-field:last-child { border-bottom:none; }
+.lf-label { font-size:9.5px; color:rgba(255,255,255,.3); }
+.lf-value { font-size:10px; color:var(--white); font-weight:500; text-align:right; max-width:170px; }
+.lf-value.empty { color:rgba(255,255,255,.15); font-style:italic; font-size:9px; }
+.lf-value.qv { color:#4ade80; font-weight:700; }
+.lf-value.dv { color:#f87171; font-weight:700; }
+.lf-value.pv { color:#fbbf24; }
+.stage-badge { display:inline-flex; align-items:center; padding:2px 6px; border-radius:12px; font-size:8.5px; font-weight:700; letter-spacing:.03em; }
+.stage-badge.new { background:rgba(201,168,76,.2); color:var(--gold); border:1px solid rgba(201,168,76,.3); }
+.stage-badge.qualifying { background:rgba(59,130,246,.2); color:#93c5fd; border:1px solid rgba(59,130,246,.3); }
+.stage-badge.qualified { background:rgba(22,163,74,.2); color:#4ade80; border:1px solid rgba(22,163,74,.3); }
+.stage-badge.disqualified { background:rgba(220,38,38,.2); color:#f87171; border:1px solid rgba(220,38,38,.3); }
+.stage-badge.booked { background:rgba(139,92,246,.2); color:#c4b5fd; border:1px solid rgba(139,92,246,.3); }
+.stage-badge.docs { background:rgba(234,179,8,.2); color:#fde047; border:1px solid rgba(234,179,8,.3); }
+.activity-title { padding:6px 8px 3px; font-size:8px; color:rgba(255,255,255,.25); text-transform:uppercase; letter-spacing:.06em; font-weight:600; flex-shrink:0; }
+.activity-feed { flex:1; overflow-y:auto; padding:0 8px 8px; display:flex; flex-direction:column; gap:4px; }
+.activity-item { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); border-left:3px solid var(--gold-dim); border-radius:4px; padding:5px 7px; animation:slideIn2 .4s ease; }
+.activity-item.success { border-left-color:#22c55e; }
+.activity-item.info { border-left-color:#3b82f6; }
+.activity-item.warning { border-left-color:#f59e0b; }
+.activity-item.danger { border-left-color:#ef4444; }
+.activity-item.purple { border-left-color:#8b5cf6; }
+@keyframes slideIn2 { from{opacity:0;transform:translateX(6px)} to{opacity:1;transform:translateX(0)} }
+.activity-event { font-size:10px; color:var(--white); font-weight:600; margin-bottom:1px; }
+.activity-detail { font-size:9px; color:rgba(255,255,255,.4); }
+.activity-time { font-size:8.5px; color:rgba(255,255,255,.18); margin-top:2px; }
+.crm-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; color:rgba(255,255,255,.12); font-size:10px; padding:14px; text-align:center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">M</div>
+  <div class="header-text">
+    <h1>MIOYM Affordable Homes</h1>
+    <p>AI Leasing Platform — Live Demo</p>
+  </div>
+  <div class="header-right">
+    <span class="demo-badge">DEMO</span>
+    <div class="status-dot"><div class="dot"></div> Sophie Online</div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- LEFT: CHAT -->
+  <div class="chat-panel">
+    <div class="chat-header">
+      <div class="sophie-av">S</div>
+      <div class="chat-header-info">
+        <h3>Sophie</h3>
+        <p>AI Leasing Assistant · MIOYM Affordable Homes</p>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-steps">
+        <div class="step active" id="step-1"><div class="step-dot">1</div><div class="step-label">Greet</div></div>
+        <div class="step" id="step-2"><div class="step-dot">2</div><div class="step-label">Tour</div></div>
+        <div class="step" id="step-3"><div class="step-dot">3</div><div class="step-label">Qualify</div></div>
+        <div class="step" id="step-4"><div class="step-dot">4</div><div class="step-label">Book</div></div>
+        <div class="step" id="step-5"><div class="step-dot">5</div><div class="step-label">Verify</div></div>
+        <div class="step" id="step-6"><div class="step-dot">6</div><div class="step-label">Door Code</div></div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div id="chipsWrapper"></div>
+    <div class="input-area">
+      <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off" />
+      <button id="sendBtn" aria-label="Send">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT: 3 TABS -->
+  <div class="right-panel">
+    <div class="tabs">
+      <div class="tab active" id="tab-inbox" onclick="switchTab('inbox')">
+        <div class="tab-icon inbox">@</div> Email Inbox
+      </div>
+      <div class="tab" id="tab-sheets" onclick="switchTab('sheets')">
+        <div class="tab-icon sheets">G</div> Google Sheets
+      </div>
+      <div class="tab" id="tab-crm" onclick="switchTab('crm')">
+        <div class="tab-icon fw">fw</div> Freshworks CRM
+      </div>
+    </div>
+
+    <!-- INBOX TAB -->
+    <div class="tab-content active" id="content-inbox">
+      <div class="inbox-panel">
+        <div class="inbox-header">
+          <div class="inbox-logo">@</div>
+          <div class="inbox-header-info">
+            <h3>Leasing Outlook Inbox</h3>
+            <p>leasing@mioymaffordablehomes.com · AI parsing active</p>
+          </div>
+        </div>
+
+        <div class="platform-selector">
+          <span class="platform-label">Platform:</span>
+          <button class="platform-btn active" onclick="selectPlatform('avail', this)">Avail</button>
+          <button class="platform-btn" onclick="selectPlatform('turbotenant', this)">TurboTenant</button>
+          <button class="platform-btn" onclick="selectPlatform('apartments', this)">Apartments.com</button>
+          <button class="platform-btn" onclick="selectPlatform('zillow', this)">Zillow</button>
+          <button class="simulate-btn" onclick="simulateEmail()">▶ Simulate Notification</button>
+        </div>
+
+        <div class="email-viewer" id="emailViewer">
+          <div class="email-placeholder" id="emailPlaceholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Select a platform and click "Simulate Notification" to see how the AI parses incoming lead emails
+          </div>
+        </div>
+
+        <div class="parsing-section" id="parsingSection" style="display:none">
+          <div class="parsing-header">
+            <div class="parsing-spinner" id="parsingSpinner"></div>
+            <span id="parsingLabel" style="font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">AI Extraction Layer</span>
+          </div>
+          <div class="parsed-fields" id="parsedFields"></div>
+          <button class="push-to-sheets" id="pushToSheetsBtn" onclick="pushToSheets()">
+            ↓ Push to Google Sheets + Freshworks CRM
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHEETS TAB -->
+    <div class="tab-content" id="content-sheets">
+      <div class="sheets-panel">
+        <div class="sheets-header">
+          <div class="sheets-logo">G</div>
+          <div class="sheets-header-info">
+            <h3>Leasing Lead Tracker</h3>
+            <p>MIOYM_Leads_2026.gsheet · Auto-updated</p>
+          </div>
+          <div class="sheets-live"><div class="sheets-live-dot"></div>LIVE</div>
+        </div>
+        <div class="formula-bar">
+          <span class="formula-cell" id="activeCell">A1</span>
+          <span class="formula-sep">|</span>
+          <span class="formula-content">=IFERROR(VLOOKUP(A2,CRM_Leads,2,FALSE),"")</span>
+        </div>
+        <div class="spreadsheet-wrapper">
+          <table class="spreadsheet" id="sheetTable">
+            <thead>
+              <tr>
+                <th class="row-num">#</th>
+                <th>Time</th>
+                <th>Source</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Property</th>
+                <th>Event</th>
+                <th>Credit</th>
+                <th>Income</th>
+                <th>Status</th>
+                <th>CRM</th>
+              </tr>
+            </thead>
+            <tbody id="sheetBody"></tbody>
+          </table>
+        </div>
+        <div class="sheets-activity">
+          <div class="sheets-activity-title">Script Log</div>
+          <div class="sheets-log" id="sheetsLog">
+            <div class="sheets-log-item"><span class="log-time">READY</span><span>Apps Script running · Waiting for lead data...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRM TAB -->
+    <div class="tab-content" id="content-crm">
+      <div class="crm-inner">
+        <div class="crm-header">
+          <div class="crm-logo">fw</div>
+          <div class="crm-header-info">
+            <h3>Freshworks CRM</h3>
+            <p>Leasing pipeline · Auto-push from Google Sheets</p>
+          </div>
+          <div class="crm-live"><div class="crm-live-dot"></div>LIVE</div>
+        </div>
+        <div class="pipeline-flow">
+          <div class="pipeline-title">Automation Pipeline</div>
+          <div class="pipeline-steps">
+            <div class="pipe-step"><span class="pipe-badge active" id="pipe-1">Email Inbox</span></div>
+            <div class="pipe-step"><span class="pipe-badge" id="pipe-2">AI Parse</span></div>
+            <div class="pipe-step"><span class="pipe-badge" id="pipe-3">Sheets</span></div>
+            <div class="pipe-step"><span class="pipe-badge" id="pipe-4">Freshworks</span></div>
+            <div class="pipe-step"><span class="pipe-badge" id="pipe-5">Sophie AI</span></div>
+          </div>
+        </div>
+        <div class="lead-card">
+          <div class="lead-card-title">
+            Latest Lead Record
+            <span class="push-badge" id="pushBadge">Pushed from Sheets ✓</span>
+          </div>
+          <div class="lead-field"><span class="lf-label">Source</span><span class="lf-value empty" id="crm-source">—</span></div>
+          <div class="lead-field"><span class="lf-label">Name</span><span class="lf-value empty" id="crm-name">—</span></div>
+          <div class="lead-field"><span class="lf-label">Email</span><span class="lf-value empty" id="crm-email">—</span></div>
+          <div class="lead-field"><span class="lf-label">Phone</span><span class="lf-value empty" id="crm-phone">—</span></div>
+          <div class="lead-field"><span class="lf-label">Property</span><span class="lf-value empty" id="crm-property">—</span></div>
+          <div class="lead-field"><span class="lf-label">Event Type</span><span class="lf-value empty" id="crm-event">—</span></div>
+          <div class="lead-field"><span class="lf-label">Stage</span><span class="lf-value" id="crm-stage"><span class="stage-badge new">New Lead</span></span></div>
+        </div>
+        <div class="activity-title">CRM Activity Log</div>
+        <div class="activity-feed" id="activityFeed">
+          <div class="crm-empty" id="crmEmpty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Waiting for data push from Google Sheets...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CALENDLY = 'https://calendly.com/rajjcreationss/mioym-property-tour';
+const TALLY = 'https://tally.so/r/7RvrPL';
+
+const EMAILS = {
+  avail: { sender:'notifications@avail.co', subject:'New Renter Lead — 123 Maple Street', body:`Hi,\n\nYou have a new renter lead for your property at 123 Maple Street.\n\nRenter Information:\nName: Sarah Johnson\nEmail: sarah.johnson@gmail.com\nPhone: (312) 555-0192\nMove-in Date: August 1, 2026\nMessage: "Hi, I'm very interested in this property. I have a stable income and good rental history. Please let me know if it's still available."\n\nView this lead in your Avail dashboard to respond.\n\n— The Avail Team` },
+  turbotenant: { sender:'no-reply@turbotenant.com', subject:'New message from Michael Chen regarding 456 Oak Avenue', body:`Hello,\n\nYou have received a new message from a prospective tenant.\n\nFrom: Michael Chen (michael.chen@email.com)\nPhone: (773) 555-0847\nProperty: 456 Oak Avenue\nMessage: "I saw your listing and I'm very interested. I've been employed at the same company for 3 years and have great rental references. When can I schedule a viewing?"\n\nLog in to TurboTenant to respond to this lead.\n\n— TurboTenant` },
+  apartments: { sender:'leads@apartments.com', subject:"You've received a new lead!", body:`Congratulations! You have a new lead on Apartments.com.\n\nLead Details:\nName: Emily Rodriguez\nEmail: e.rodriguez@outlook.com\nPhone: (469) 555-0334\nProperty: 789 Pine Road, Unit 2B\nDesired Move-in: September 2026\nMessage: "Looking for a 2BR for myself and my partner. Both employed full-time. Can we schedule a tour this week?"\n\nRespond quickly — leads who hear back within an hour are 7x more likely to rent.\n\n— Apartments.com Team` },
+  zillow: { sender:'zillow-leads@zillow.com', subject:'New Rental Lead on Zillow', body:`You have a new rental inquiry on Zillow.\n\nContact Information:\nName: David Thompson\nEmail: dthompson@gmail.com\nPhone: (214) 555-0621\nProperty: 321 Birch Lane\nTour Requested: Yes\nPreferred Date: This Saturday\n\nMessage: "Hi! I'm very interested in renting this home. I have a credit score of 720 and earn $72,000/year. Please let me know your availability for a tour."\n\nView and respond to this lead in your Zillow account.\n\n— Zillow Rentals` }
+};
+
+const PARSED = {
+  avail: [ {label:'Platform', value:'Avail'}, {label:'Event', value:'New Renter Lead'}, {label:'Name', value:'Sarah Johnson'}, {label:'Email', value:'sarah.johnson@gmail.com'}, {label:'Phone', value:'(312) 555-0192'}, {label:'Property', value:'123 Maple Street'}, {label:'Move-in', value:'August 1, 2026'} ],
+  turbotenant: [ {label:'Platform', value:'TurboTenant'}, {label:'Event', value:'New Message / Lead'}, {label:'Name', value:'Michael Chen'}, {label:'Email', value:'michael.chen@email.com'}, {label:'Phone', value:'(773) 555-0847'}, {label:'Property', value:'456 Oak Avenue'} ],
+  apartments: [ {label:'Platform', value:'Apartments.com'}, {label:'Event', value:'New Lead'}, {label:'Name', value:'Emily Rodriguez'}, {label:'Email', value:'e.rodriguez@outlook.com'}, {label:'Phone', value:'(469) 555-0334'}, {label:'Property', value:'789 Pine Road, Unit 2B'}, {label:'Move-in', value:'September 2026'} ],
+  zillow: [ {label:'Platform', value:'Zillow'}, {label:'Event', value:'New Lead + Tour Request'}, {label:'Name', value:'David Thompson'}, {label:'Email', value:'dthompson@gmail.com'}, {label:'Phone', value:'(214) 555-0621'}, {label:'Property', value:'321 Birch Lane'}, {label:'Tour Date', value:'This Saturday'} ]
+};
+
+let selectedPlatform = 'avail';
+let currentParsed = null;
+let sheetRowCount = 0;
+let conversationHistory = [];
+let currentStep = 1;
+
+// TAB SWITCHING
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById(`content-${tab}`).classList.add('active');
+}
+
+function selectPlatform(p, btn) {
+  selectedPlatform = p;
+  document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// SIMULATE EMAIL
+function simulateEmail() {
+  const email = EMAILS[selectedPlatform];
+  const viewer = document.getElementById('emailViewer');
+  document.getElementById('emailPlaceholder')?.remove();
+
+  // Remove old email card
+  const old = document.getElementById('emailCard');
+  if (old) old.remove();
+
+  const card = document.createElement('div');
+  card.className = 'email-card';
+  card.id = 'emailCard';
+  card.innerHTML = `
+    <div class="email-meta">
+      <div class="email-meta-row"><span class="email-meta-label">FROM</span><span class="email-meta-value">${email.sender}</span></div>
+      <div class="email-meta-row"><span class="email-meta-label">TO</span><span class="email-meta-value">leasing@mioymaffordablehomes.com</span></div>
+      <div class="email-meta-row"><span class="email-meta-label">SUBJECT</span><span class="email-subject">${email.subject}</span></div>
+    </div>
+    <div class="email-body">${email.body}</div>
+  `;
+  viewer.appendChild(card);
+
+  // Show parsing section
+  document.getElementById('parsingSection').style.display = 'block';
+  document.getElementById('parsedFields').innerHTML = '';
+  document.getElementById('pushToSheetsBtn').classList.remove('visible');
+
+  const spinner = document.getElementById('parsingSpinner');
+  const label = document.getElementById('parsingLabel');
+  spinner.classList.add('active');
+  label.textContent = 'AI Parsing — Extracting Fields...';
+
+  const fields = PARSED[selectedPlatform];
+  currentParsed = fields;
+
+  fields.forEach((f, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'parsed-field pf-highlight';
+      div.innerHTML = `<span class="pf-label">${f.label}</span><span class="pf-value">${f.value}</span>`;
+      document.getElementById('parsedFields').appendChild(div);
+      setTimeout(() => div.classList.add('visible'), 50);
+
+      if (i === fields.length - 1) {
+        spinner.classList.remove('active');
+        label.textContent = `✓ ${fields.length} fields extracted`;
+        document.getElementById('pushToSheetsBtn').classList.add('visible');
+        setPipe(2);
+      }
+    }, i * 350);
+  });
+}
+
+function now() { return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }); }
+
+function addSheetLog(text) {
+  const log = document.getElementById('sheetsLog');
+  const item = document.createElement('div');
+  item.className = 'sheets-log-item';
+  item.innerHTML = `<span class="log-time">${now()}</span><span>${text}</span>`;
+  log.appendChild(item);
+  log.scrollTop = log.scrollHeight;
+}
+
+function addCRMActivity(text, detail, type = 'info') {
+  const feed = document.getElementById('activityFeed');
+  document.getElementById('crmEmpty')?.remove();
+  const item = document.createElement('div');
+  item.className = `activity-item ${type}`;
+  item.innerHTML = `<div class="activity-event">${text}</div>${detail ? `<div class="activity-detail">${detail}</div>` : ''}<div class="activity-time">${now()}</div>`;
+  feed.appendChild(item);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function setPipe(n) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById(`pipe-${i}`);
+    if (!el) continue;
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  }
+}
+
+function pushToSheets() {
+  if (!currentParsed) return;
+  const data = {};
+  currentParsed.forEach(f => { data[f.label.toLowerCase()] = f.value; });
+
+  sheetRowCount++;
+  const rowNum = sheetRowCount;
+  const tbody = document.getElementById('sheetBody');
+
+  const tr = document.createElement('tr');
+  tr.id = `sheet-row-${rowNum}`;
+  tr.innerHTML = `
+    <td class="row-num">${rowNum}</td>
+    <td class="cell-pending cell-new">${now()}</td>
+    <td class="cell-source cell-new">${data['platform'] || '—'}</td>
+    <td class="cell-new">${data['name'] || '—'}</td>
+    <td class="cell-new">${data['email'] || '—'}</td>
+    <td class="cell-new">${data['phone'] || '—'}</td>
+    <td class="cell-new">${data['property'] || '—'}</td>
+    <td class="cell-new">${data['event'] || '—'}</td>
+    <td class="cell-empty">—</td>
+    <td class="cell-empty">—</td>
+    <td class="cell-pending cell-new">New Lead</td>
+    <td class="cell-empty">Pending</td>
+  `;
+  tbody.appendChild(tr);
+
+  addSheetLog(`Row ${rowNum} written → ${data['platform']} lead: ${data['name']}`);
+  setPipe(3);
+  switchTab('sheets');
+
+  setTimeout(() => {
+    addSheetLog(`Freshworks API call triggered → POST /api/contacts`);
+    setPipe(4);
+
+    // Update CRM
+    const crmFields = {
+      source: data['platform'],
+      name: data['name'],
+      email: data['email'],
+      phone: data['phone'],
+      property: data['property'],
+      event: data['event'] || 'New Lead'
+    };
+
+    Object.entries(crmFields).forEach(([k, v]) => {
+      const el = document.getElementById(`crm-${k}`);
+      if (el && v) { el.textContent = v; el.classList.remove('empty'); }
+    });
+
+    document.getElementById('pushBadge').classList.add('visible');
+    addCRMActivity('Lead created from ' + data['platform'], `${data['name']} · ${data['property']}`, 'success');
+    addCRMActivity('Workflow triggered', 'Sophie AI assigned to follow up', 'purple');
+
+    // Update sheet CRM column
+    const row = document.getElementById(`sheet-row-${rowNum}`);
+    if (row) {
+      const cells = row.querySelectorAll('td');
+      if (cells[11]) { cells[11].textContent = '✓ Pushed'; cells[11].className = 'cell-qualified cell-new'; }
+    }
+
+    addSheetLog(`CRM push successful → Lead ID created in Freshworks`);
+    setPipe(5);
+
+    setTimeout(() => switchTab('crm'), 800);
+  }, 1500);
+}
+
+// ── SOPHIE CHAT ──
+const SYSTEM_PROMPT = `You are Sophie, the AI Leasing Assistant for MIOYM Affordable Homes.
+
+ABOUT MIOYM:
+- Helps first-time buyers via Rent-to-Own and FHA loan pathways
+- Down payment assistance provided, credit repair support available
+- All homes fully renovated, state & government certified
+- Minimum credit score: 600 (collections, low scores, medical bills OK — no bankruptcies/foreclosures)
+
+ROLE: Handle the full leasing conversation. Be warm, human, conversational. Keep replies 2-3 sentences max. Use the prospect's name once you have it.
+
+STRICT FLOW:
+Step 1 — Ask name and property interest.
+Step 2 — Briefly introduce MIOYM. Ask tour date/time preference.
+Step 3 — Collect: a) credit score b) annual income c) monthly income (one at a time)
+Step 4 — Credit >=600: Congratulate, qualify, send Calendly: ${CALENDLY}
+         Credit <600: Explain minimum, mention credit repair program, keep door open.
+Step 5 — After booking: send Tally: ${TALLY} for ID + credit screenshot.
+Step 6 — After upload confirmed: tell them door code + instructions sent via email + SMS.
+Step 7 — Post tour: follow up, invite application.
+
+RULES: Never invent property details. Pricing at tour. One question at a time.
+
+At key data capture moments append ONE JSON block on a new line at end of message:
+{"crm_update":{"field":"name","value":"VALUE"}}
+{"crm_update":{"field":"property","value":"VALUE"}}
+{"crm_update":{"field":"tour","value":"VALUE"}}
+{"crm_update":{"field":"credit","value":"VALUE","qualified":true}}
+{"crm_update":{"field":"income","value":"VALUE"}}
+{"crm_update":{"field":"monthly","value":"VALUE"}}
+{"crm_update":{"field":"stage","value":"qualifying|qualified|disqualified|booked|docs|doorcode"}}
+Only when new data captured. Never repeat.`;
+
+function setStep(n) {
+  for (let i = 1; i <= 6; i++) {
+    const el = document.getElementById(`step-${i}`);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  }
+  currentStep = n;
+}
+
+function processJSON(text) {
+  const lines = text.split('\n');
+  const clean = [];
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.startsWith('{"crm_update"')) {
+      try {
+        const u = JSON.parse(t).crm_update;
+        if (u && u.field) {
+          // Update sheets
+          addSheetLog(`Sophie captured: ${u.field} = ${u.value}`);
+          // Update CRM stage/fields if Sophie flow
+          if (u.field === 'stage') {
+            const map = { qualifying:['Qualifying','#93c5fd'], qualified:['Qualified ✓','#4ade80'], disqualified:['Not Qualified','#f87171'], booked:['Tour Booked','#c4b5fd'], docs:['Docs Requested','#fde047'], doorcode:['Door Code Sent','#4ade80'] };
+            const stageBadgeMap = { qualifying:'qualifying', qualified:'qualified', disqualified:'disqualified', booked:'booked', docs:'docs', doorcode:'qualified' };
+            const el = document.getElementById('crm-stage');
+            if (el && map[u.value]) el.innerHTML = `<span class="stage-badge ${stageBadgeMap[u.value] || 'new'}">${map[u.value][0]}</span>`;
+            const actMap = { qualifying:['Qualifying started','Collecting lead data','info'], qualified:['Lead QUALIFIED','Meets all requirements','success'], disqualified:['Below credit minimum','Credit repair path offered','danger'], booked:['Tour confirmed','Calendly synced to CRM','purple'], docs:['Docs requested','Tally link sent via email + SMS','warning'], doorcode:['Door code issued','Sent via email and SMS','success'] };
+            const [ev,det,tp] = actMap[u.value] || ['Stage updated',u.value,'info'];
+            addCRMActivity(ev, det, tp);
+            if (u.value === 'qualified') setStep(4);
+            if (u.value === 'booked') setStep(5);
+            if (u.value === 'doorcode') setStep(6);
+            if (u.value === 'qualifying') setStep(3);
+          }
+        }
+      } catch(e) {}
+    } else { clean.push(line); }
+  }
+  return clean.join('\n').trim();
+}
+
+function scrollChat() { const c = document.getElementById('chatMessages'); c.scrollTop = c.scrollHeight; }
+
+function setChips(chips) {
+  const w = document.getElementById('chipsWrapper');
+  w.innerHTML = '';
+  if (!chips.length) return;
+  const div = document.createElement('div');
+  div.className = 'chips';
+  chips.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'chip'; btn.textContent = c;
+    btn.onclick = () => sendMessage(c);
+    div.appendChild(btn);
+  });
+  w.appendChild(div);
+}
+
+function addMessage(role, content) {
+  const chat = document.getElementById('chatMessages');
+  const w = document.createElement('div');
+  w.className = `message ${role === 'assistant' ? 'sophie' : 'user'}`;
+  const av = document.createElement('div');
+  av.className = `av ${role === 'assistant' ? 's' : 'u'}`;
+  av.textContent = role === 'assistant' ? 'S' : 'Y';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = content
+    .replace(/(https:\/\/calendly\.com\/[^\s<]+)/g, '<a href="$1" target="_blank">Book your tour here →</a>')
+    .replace(/(https:\/\/tally\.so\/[^\s<]+)/g, '<a href="$1" target="_blank">Upload documents here →</a>');
+  w.appendChild(av); w.appendChild(bubble);
+  chat.appendChild(w);
+  scrollChat();
+}
+
+function showTyping() {
+  const chat = document.getElementById('chatMessages');
+  const w = document.createElement('div');
+  w.className = 'message sophie'; w.id = 'typing';
+  const av = document.createElement('div');
+  av.className = 'av s'; av.textContent = 'S';
+  const t = document.createElement('div');
+  t.className = 'typing';
+  t.innerHTML = '<span></span><span></span><span></span>';
+  w.appendChild(av); w.appendChild(t);
+  chat.appendChild(w); scrollChat();
+}
+
+function removeTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
+
+function getChips(r) {
+  const l = r.toLowerCase();
+  if (l.includes('book') && l.includes('calendly')) return ["I've booked my tour", 'I need help booking'];
+  if (l.includes('upload') || l.includes('tally')) return ["I've uploaded my documents", 'I need help uploading'];
+  if (l.includes('congratul') || (l.includes('qualif') && l.includes('book'))) return ['Book my tour now', 'I have a question first'];
+  if (l.includes('credit score') && (l.includes('estimat') || l.includes('what') || l.includes('know'))) return ['Under 600', '600–650', '650–700', '700+'];
+  if (l.includes('annual income') || l.includes('yearly')) return ['Under $30k', '$30k–$50k', '$50k–$80k', 'Over $80k'];
+  if (l.includes('monthly income') || l.includes('monthly')) return ['Under $2,500', '$2,500–$4k', '$4k–$6k', 'Over $6k'];
+  if (l.includes('tour') && (l.includes('prefer') || l.includes('date') || l.includes('time'))) return ['This weekend', 'Next week', 'Weekday morning', 'Weekday evening'];
+  if (l.includes('how was') || l.includes('how did') || l.includes('tour go')) return ['It was great!', 'I have questions', "I'd like to apply"];
+  if (l.includes('name') && l.includes('property')) return ['I saw a listing online', 'A friend referred me'];
+  return [];
+}
+
+async function sendMessage(text) {
+  const input = document.getElementById('userInput');
+  const msg = text || input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  setChips([]);
+  addMessage('user', msg);
+  if (currentStep === 1) setStep(2);
+  conversationHistory.push({ role:'user', content:msg });
+  showTyping();
+  try {
+    const res = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, system:SYSTEM_PROMPT, messages:conversationHistory })
+    });
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || "I'm sorry, could you try again?";
+    const clean = processJSON(raw);
+    conversationHistory.push({ role:'assistant', content:raw });
+    removeTyping();
+    addMessage('assistant', clean);
+    setChips(getChips(clean));
+  } catch(e) {
+    removeTyping();
+    addMessage('assistant', "I'm having a moment — please try again.");
+  }
+}
+
+document.getElementById('sendBtn').onclick = () => sendMessage();
+document.getElementById('userInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+window.addEventListener('load', async () => {
+  showTyping();
+  await new Promise(r => setTimeout(r, 1000));
+  removeTyping();
+  const opening = "Hi there! I'm Sophie, your leasing assistant at MIOYM Affordable Homes — where we help make homeownership possible for everyone. What's your name, and which property are you interested in?";
+  conversationHistory.push({ role:'assistant', content:opening });
+  addMessage('assistant', opening);
+  setChips(["I saw a listing online", "A friend referred me"]);
+});
+</script>
+</body>
+</html>
